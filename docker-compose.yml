@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: api-service
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/appdb}
+      EXTRACTOR_URL: http://extrator-service:5000/processar
+    ports:
+      - "8000:8000"
+    depends_on:
+      - extrator
+      - db
+    networks:
+      - etl-network
+
+  extrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.extractor
+    container_name: extrator-service
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/appdb}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - etl-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - etl-network
+
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: dynamodb-local
+    ports:
+      - "8001:8001"
+    networks:
+      - etl-network
+
+volumes:
+  postgres_data:
+
+networks:
+  etl-network:
+    driver: bridge
