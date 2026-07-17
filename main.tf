@@ -320,6 +320,50 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 # -------------------------
+# ECR Repositories
+# -------------------------
+resource "aws_ecr_repository" "api" {
+  name                 = "${var.project_name}-api"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  tags = {
+    app = var.project_name
+  }
+}
+
+resource "aws_ecr_repository" "extrator" {
+  name                 = "${var.project_name}-extrator"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  tags = {
+    app = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_ecr_policy" {
+  name = "${var.project_name}-ecr-access"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# -------------------------
 # EC2 + Nginx reverse proxy + API container
 # -------------------------
 resource "aws_launch_template" "ec2_lt" {
@@ -348,7 +392,6 @@ resource "aws_launch_template" "ec2_lt" {
     systemctl enable nginx
     systemctl start nginx
 
-    # Ensure docker is usable
     usermod -aG docker ubuntu || true
 
     # Nginx reverse proxy
@@ -362,10 +405,8 @@ resource "aws_launch_template" "ec2_lt" {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-
         proxy_pass http://127.0.0.1:8000;
       }
     }
@@ -376,20 +417,41 @@ resource "aws_launch_template" "ec2_lt" {
     nginx -t
     systemctl restart nginx
 
-    # Run API container locally
-    docker pull api-etl:latest || true
-    docker rm -f api-service || true
+    # ECR login
+    ECR_REGISTRY=$(echo "${aws_ecr_repository.api.repository_url}" | cut -d'/' -f1)
+    aws ecr get-login-password --region ${var.aws_region} | \
+      docker login --username AWS --password-stdin $ECR_REGISTRY
 
-    docker run -d --name api-service \
+    # Docker network
+    docker network create etl-network || true
+
+    # Run extrator
+    docker pull ${aws_ecr_repository.extrator.repository_url}:latest
+    docker rm -f extrator-service || true
+    docker run -d --name extrator-service \
       --restart unless-stopped \
+      --network etl-network \
       -e "DATABASE_URL=postgresql+psycopg2://${var.rds_username}:${var.rds_password}@${aws_db_instance.rds.address}:5432/${var.rds_database_name}" \
       -e "AWS_REGION=${var.aws_region}" \
       -e "DYNAMODB_TABLE=${var.dynamodb_table_name}" \
+      -p 5000:5000 \
+      ${aws_ecr_repository.extrator.repository_url}:latest
+
+    # Run API
+    docker pull ${aws_ecr_repository.api.repository_url}:latest
+    docker rm -f api-service || true
+    docker run -d --name api-service \
+      --restart unless-stopped \
+      --network etl-network \
+      -e "DATABASE_URL=postgresql+psycopg2://${var.rds_username}:${var.rds_password}@${aws_db_instance.rds.address}:5432/${var.rds_database_name}" \
+      -e "EXTRACTOR_URL=http://extrator-service:5000/processar" \
+      -e "AWS_REGION=${var.aws_region}" \
+      -e "DYNAMODB_TABLE=${var.dynamodb_table_name}" \
       -p 8000:8000 \
-      api-etl:latest
+      ${aws_ecr_repository.api.repository_url}:latest
 
     # Health check
-    sleep 8
+    sleep 10
     curl -fsS http://127.0.0.1:8000/docs || true
   EOT
   )
@@ -496,6 +558,16 @@ output "rds_endpoint" {
 
 output "dynamodb_table_name" {
   value = aws_dynamodb_table.employee_costs.name
+}
+
+output "ecr_api_url" {
+  value       = aws_ecr_repository.api.repository_url
+  description = "ECR URL da imagem da API"
+}
+
+output "ecr_extrator_url" {
+  value       = aws_ecr_repository.extrator.repository_url
+  description = "ECR URL da imagem do Extrator"
 }
 
 output "dynamodb_table_arn" {
