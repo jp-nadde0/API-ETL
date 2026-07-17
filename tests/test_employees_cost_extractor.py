@@ -1,13 +1,14 @@
-from extractors.employee_costs_extractor import ParseNumeros, ExtratorEmpresa, ExtratorEventos, ExtratorBlocos, ExtratorFuncionario, ExtrairBasesImpostos, ExtrairTotais, ExtratorPDF
+from extractors.employee_costs_extractor import ExtratorEmpresa, ExtratorEventos, ExtratorBlocos, ExtratorFuncionario, ExtrairBasesImpostos, ExtrairTotais, ExtratorPDF
+from database.utils.parsers import parse_float
 import pytest
 
 @pytest.fixture
-def parse_numeros():
-    return ParseNumeros()
+def parse_float_test():
+    return parse_float
 
-def test_parse_float_with_valid_number(parse_numeros):
+def test_parse_float_with_valid_number(parse_float_test):
     salario_br = "1.234,56"
-    resultado = parse_numeros.parse_float(salario_br)
+    resultado = parse_float_test(salario_br)
     
     assert resultado == 1234.56
 

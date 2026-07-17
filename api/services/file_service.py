@@ -1,6 +1,7 @@
 import os
 import tempfile
-from typing import Optional
+from contextlib import contextmanager
+from typing import Generator, Optional
 
 from fastapi import HTTPException, UploadFile
 
@@ -24,3 +25,12 @@ class ServicoArquivoTemporario:
     def remover(self, file_path: Optional[str]) -> None:
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
+
+    @contextmanager
+    def arquivo_temporario(self, upload_file: UploadFile, suffix: Optional[str] = None) -> Generator[str, None, None]:
+        """Context manager que salva o arquivo, cede o caminho e garante a remoção ao final."""
+        path = self.salvar(upload_file, suffix)
+        try:
+            yield path
+        finally:
+            self.remover(path)

@@ -1,9 +1,7 @@
-import os
-
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
 
-from config.constants import SALES_SHEET_NAME
+from config.constants import SALES_SHEET_NAME, obter_database_url
 from services.file_service import ServicoArquivoTemporario
 from services.sales_service import ServicoVendas
 
@@ -21,22 +19,17 @@ async def health_check():
 @app.post("/processar")
 async def processar_planilha(file: UploadFile = File(...)):
     """Recebe um arquivo Excel, salva em /tmp e persiste os dados no banco configurado."""
-    temp_file_path = servico_arquivo.salvar(file)
-    try:
+    with servico_arquivo.arquivo_temporario(file) as temp_path:
         resultado = servico_vendas.persistir_dados(
-            temp_file_path,
+            temp_path,
             sheet_name=SALES_SHEET_NAME,
-            database_url=os.getenv("DATABASE_URL"),
+            database_url=obter_database_url(),
         )
         return {
             "status": "ok",
             "arquivo": file.filename,
             **resultado,
         }
-    except Exception as exc:
-        raise RuntimeError(f"Erro ao processar a planilha: {exc}") from exc
-    finally:
-        servico_arquivo.remover(temp_file_path)
 
 
 if __name__ == "__main__":

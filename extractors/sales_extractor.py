@@ -8,26 +8,7 @@ from openpyxl import load_workbook
 
 from config.constants import SALES_SHEET_NAME
 from repositories.sales_repository import RepositorioVendasSqlModel
-
-class Parser:
-    """Responsável por converter valores para tipos úteis."""
-
-    @staticmethod
-    def parse_float(value) -> float:
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
-
-    @staticmethod
-    def parse_date(value):
-        if isinstance(value, datetime):
-            return value.strftime('%Y-%m-%d')
-        if isinstance(value, date):
-            return value.strftime('%Y-%m-%d')
-        if value is None:
-            return None
-        return str(value)
+from utils.parsers import parse_date, parse_float
 
 class ExtrairDadosProdutos:
     """Responsável por extrair dados de produtos a partir de uma planilha."""
@@ -55,11 +36,11 @@ class ExtrairDadosProdutos:
 
         for row in rows[1:]:
             id_venda = row[id_idx]
-            data_venda = Parser.parse_date(row[data_venda_idx])
+            data_venda = parse_date(row[data_venda_idx])
             produto = row[produto_idx]
             categoria = row[categoria_idx]
-            preco_unitario = Parser.parse_float(row[preco_unitario_idx])
-            quantidade_vendida = Parser.parse_float(row[quantidade_vendida_idx])
+            preco_unitario = parse_float(row[preco_unitario_idx])
+            quantidade_vendida = parse_float(row[quantidade_vendida_idx])
             faturamento_total = round(preco_unitario * quantidade_vendida, 2)
             estoque_atual = row[estoque_atual_idx]
 

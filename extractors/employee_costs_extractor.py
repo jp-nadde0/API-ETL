@@ -1,8 +1,11 @@
-from typing import List, Dict, Optional
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from typing import Dict, List, Optional
 import json
 import re
 import pdfplumber
+
+from utils.parsers import parse_float
+
 
 @dataclass
 class Empresa:
@@ -11,13 +14,6 @@ class Empresa:
     inscricao_estadual: str
     data_periodo: str
 
-    def to_dict(self) -> Dict:
-        return {
-            "nome": self.nome,
-            "cnpj": self.cnpj,
-            "inscricao_estadual": self.inscricao_estadual,
-            "data_periodo": self.data_periodo
-        }
 
 @dataclass
 class Eventos:
@@ -27,14 +23,6 @@ class Eventos:
     provento: Optional[float] = None
     desconto: Optional[float] = None
 
-    def to_dict(self) -> Dict:
-        return {
-            "codigo": self.codigo,
-            "descricao": self.descricao,
-            "referencia": self.referencia,
-            "provento": self.provento,
-            "desconto": self.desconto
-        }
 
 @dataclass
 class Funcionario:
@@ -43,13 +31,6 @@ class Funcionario:
     cbo: str
     funcao: str
 
-    def to_dict(self) -> Dict:
-        return {
-            "codigo": self.codigo,
-            "nome": self.nome,
-            "cbo": self.cbo,
-            "funcao": self.funcao
-        }
 
 @dataclass
 class BasesImpostos:
@@ -58,13 +39,6 @@ class BasesImpostos:
     base_fgts: float
     fgts_mes: float
 
-    def to_dict(self) -> Dict:
-        return {
-            "base_inss": self.base_inss,
-            "base_irrf": self.base_irrf,
-            "base_fgts": self.base_fgts,
-            "fgts_mes": self.fgts_mes
-        }
 
 @dataclass
 class Totais:
@@ -72,38 +46,6 @@ class Totais:
     total_descontos: float
     total_liquido: float
 
-    def to_dict(self) -> Dict:
-        return {
-            "total_proventos": self.total_proventos,
-            "total_descontos": self.total_descontos,
-            "total_liquido": self.total_liquido
-        }
-
-class ParseNumeros:
-    """Classe responsável por filtrar e converter números de strings para float."""
-
-    @staticmethod
-    def parse_float(valor: str) -> float:
-        """Converte uma string para float, tratando vírgulas, pontos e símbolos."""
-        if not valor:
-            return 0.0
-
-        valor = re.sub(r'[^\d,.-]', '', str(valor))
-
-        if valor.count(',') and valor.count('.'):
-            if valor.rfind(',') > valor.rfind('.'):
-                valor = valor.replace('.', '').replace(',', '.')
-            else:
-                valor = valor.replace(',', '')
-        elif valor.count('.') == 1 and len(valor.split('.')[-1]) == 2:
-            valor = valor.replace(',', '')
-        else:
-            valor = valor.replace('.', '').replace(',', '.')
-
-        try:
-            return float(valor)
-        except ValueError:
-            return 0.0
 
 class ExtratorEmpresa:
     """Classe responsável por extrair informações da empresa a partir do texto do PDF."""
@@ -159,8 +101,8 @@ class ExtratorEventos:
                 codigo=codigo.strip(),
                 descricao=descricao.strip(),
                 referencia=referencia.strip(),
-                provento=ParseNumeros.parse_float(provento),
-                desconto=ParseNumeros.parse_float(desconto)
+                provento=parse_float(provento),
+                desconto=parse_float(desconto)
             ))
         return eventos
 
@@ -205,10 +147,10 @@ class ExtrairBasesImpostos:
             base_inss = base_irrf = base_fgts = fgts_mes = "0"
 
         return BasesImpostos(
-            base_inss=ParseNumeros.parse_float(base_inss),
-            base_irrf=ParseNumeros.parse_float(base_irrf),
-            base_fgts=ParseNumeros.parse_float(base_fgts),
-            fgts_mes=ParseNumeros.parse_float(fgts_mes)
+            base_inss=parse_float(base_inss),
+            base_irrf=parse_float(base_irrf),
+            base_fgts=parse_float(base_fgts),
+            fgts_mes=parse_float(fgts_mes)
         )
     
 class ExtrairTotais:
@@ -229,9 +171,9 @@ class ExtrairTotais:
             total_proventos = total_descontos = total_liquido = "0"
 
         return Totais(
-            total_proventos=ParseNumeros.parse_float(total_proventos),
-            total_descontos=ParseNumeros.parse_float(total_descontos),
-            total_liquido=ParseNumeros.parse_float(total_liquido)
+            total_proventos=parse_float(total_proventos),
+            total_descontos=parse_float(total_descontos),
+            total_liquido=parse_float(total_liquido)
         )
 
 class ExtratorPDF:
@@ -266,15 +208,15 @@ class ExtratorPDF:
         for bloco in blocos_comp:
             funcionario = self.extrator_funcionario.extrair_funcionario(bloco)
             eventos = self.extrator_eventos.extrair_eventos(bloco)
-            funcionario_dict = funcionario.to_dict()
-            funcionario_dict["eventos"] = [evento.to_dict() for evento in eventos]
+            funcionario_dict = asdict(funcionario)
+            funcionario_dict["eventos"] = [asdict(evento) for evento in eventos]
             funcionarios.append(funcionario_dict)
 
         return {
-            "empresa": empresa.to_dict(),
+            "empresa": asdict(empresa),
             "funcionarios": funcionarios,
-            "bases": bases.to_dict(),
-            "totais": totais.to_dict()
+            "bases": asdict(bases),
+            "totais": asdict(totais)
         }
 if __name__ == "__main__":
     extrator = ExtratorPDF()

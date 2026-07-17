@@ -1,6 +1,6 @@
 from openpyxl import Workbook
 
-from services.sales_service import ServicoVendas
+from api.services.sales_service import ServicoVendas
 
 
 def test_servico_vendas_persiste_e_consulta_registros(tmp_path):
