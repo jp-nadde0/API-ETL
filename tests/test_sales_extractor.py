@@ -47,6 +47,33 @@ def test_resumir_vendas_returns_top_and_bottom_products_and_category(sales_workb
     assert result['categoria_mais_vendida']['categoria'] == 'Categoria 1'
 
 
+def test_resumir_vendas_agrega_quantidades_repetidas_por_produto_e_categoria():
+    wb = Workbook()
+    worksheet = wb.active
+    worksheet.title = 'Dados de Vendas'
+    worksheet.append([
+        'ID Venda',
+        'Data da Venda',
+        'Produto',
+        'Categoria',
+        'Preço Unitário',
+        'Quantidade Vendida',
+        'Estoque Atual',
+    ])
+    worksheet.append((1, '2023-01-01', 'Produto A', 'Categoria 1', 10.0, 1, 100))
+    worksheet.append((2, '2023-01-02', 'Produto A', 'Categoria 1', 10.0, 4, 95))
+    worksheet.append((3, '2023-01-03', 'Produto B', 'Categoria 2', 20.0, 2, 50))
+
+    result = resumir_vendas(wb, 'Dados de Vendas')
+
+    assert result['mais_vendidos'][0]['produto'] == 'Produto A'
+    assert result['mais_vendidos'][0]['quantidade'] == 5.0
+    assert result['menos_vendidos'][0]['produto'] == 'Produto B'
+    assert result['menos_vendidos'][0]['quantidade'] == 2.0
+    assert result['categoria_mais_vendida']['categoria'] == 'Categoria 1'
+    assert result['categoria_mais_vendida']['quantidade'] == 5.0
+
+
 def test_persistir_e_consultar_vendas_em_sqlite(tmp_path, sales_workbook):
     database_url = f"sqlite:///{tmp_path / 'sales.db'}"
 

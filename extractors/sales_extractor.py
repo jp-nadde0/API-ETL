@@ -86,12 +86,20 @@ class ResumoVendas:
                 if datetime.strptime(row[1], '%Y-%m-%d') <= data_final
             ]
 
-        produtos_vendidos = [row[2] for row in dados_produtos]
-        categorias_vendidas = [row[3] for row in dados_produtos]
+        totais_produtos = Counter()
+        totais_categorias = Counter()
 
-        mais_vendidos = Counter(produtos_vendidos).most_common(1)
-        menos_vendidos = Counter(produtos_vendidos).most_common()[-1:]
-        categoria_mais_vendida = Counter(categorias_vendidas).most_common(1)
+        for row in dados_produtos:
+            quantidade_vendida = float(row[5] or 0)
+            produto = row[2]
+            categoria = row[3]
+
+            totais_produtos[produto] += quantidade_vendida
+            totais_categorias[categoria] += quantidade_vendida
+
+        mais_vendidos = sorted(totais_produtos.items(), key=lambda item: (-item[1], item[0]))[:1]
+        menos_vendidos = sorted(totais_produtos.items(), key=lambda item: (item[1], item[0]))[:1]
+        categoria_mais_vendida = sorted(totais_categorias.items(), key=lambda item: (-item[1], item[0]))[:1]
 
         return {
             'mais_vendidos': [{'produto': produto, 'quantidade': quantidade} for produto, quantidade in mais_vendidos],
