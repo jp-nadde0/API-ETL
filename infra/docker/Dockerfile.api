@@ -13,4 +13,4 @@ COPY . /app
 
 EXPOSE 8000
 
-CMD ["python", "api.py"]
+CMD ["python", "api/api.py"]

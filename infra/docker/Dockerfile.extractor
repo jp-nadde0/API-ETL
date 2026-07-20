@@ -13,4 +13,4 @@ COPY . /app
 
 EXPOSE 5000
 
-CMD ["python", "extractor_service.py"]
+CMD ["python", "api/extractor_service.py"]
