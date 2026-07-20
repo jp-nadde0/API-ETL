@@ -135,5 +135,12 @@ jobs:
 
           sudo systemctl restart nginx
           sleep 10
+          echo "Deploy concluído para o commit $GITHUB_SHA"
+          echo "Verificando health da API..."
           curl -fsS http://127.0.0.1:8000/health
-REMOTE
+          echo "Verificando Swagger via Nginx..."
+          curl -fsS http://127.0.0.1/docs >/dev/null
+          echo "Containers em execução:"
+          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          echo "Nova versão publicada com sucesso."
+          REMOTE
