@@ -11,7 +11,7 @@ from api.auth import criar_token, verificar_token
 from api.exceptions import ArquivoInvalidoError, ServicoExternoError, registrar_handlers
 from api.logging_config import configurar_logging, obter_logger
 from config.constants import DEFAULT_EXTRACTOR_URL, SALES_SHEET_NAME, obter_database_url
-from repositories.employee_costs_repository import RepositorioCustosFuncionariosDynamoDB
+from database.repositories.employee_costs_repository import RepositorioCustosFuncionariosDynamoDB
 from services.employee_costs_service import ServicoCustosFuncionarios
 from services.file_service import ServicoArquivoTemporario
 from services.sales_service import ServicoVendas

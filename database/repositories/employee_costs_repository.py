@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 import boto3
 
-from services.interfaces import ArmazenamentoCustosFuncionarios
+from api.services.interfaces import ArmazenamentoCustosFuncionarios
 
 
 class RepositorioCustosFuncionariosDynamoDB(ArmazenamentoCustosFuncionarios):

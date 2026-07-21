@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from services.interfaces import RepositorioVendas
+from api.services.interfaces import RepositorioVendas
 
 
 class Venda(SQLModel, table=True):
