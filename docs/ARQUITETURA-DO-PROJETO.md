@@ -12,6 +12,7 @@ O projeto tem três partes principais:
 
 O backend fica em `api/` e concentra a API, autenticação, tratamento de erros, logging e serviços de negócio.
 
+- A execução em produção usa Python 3.12 nos containers Docker
 - `api/api.py` expõe os endpoints
 - `api/auth.py` gera e valida JWT
 - `api/exceptions.py` padroniza os erros
@@ -61,7 +62,7 @@ Em produção, a porta pública é a do Nginx.
 
 - Nginx escuta em `80`
 - A API fica atrás do proxy, sem exposição direta para o usuário final
-- O IP público atual da EC2/Nginx é `100.56.249.140`
+- O IP público atual da EC2/Nginx é `44.203.108.22`
 
 ## Estrutura de acesso
 

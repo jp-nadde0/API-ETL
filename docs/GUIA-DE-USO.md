@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Python 3.13 ou superior
+- Python 3.12 ou superior
 - `pip`
 - `venv`
 - Docker, se quiser subir o fluxo completo em containers
@@ -51,12 +51,12 @@ Use os arquivos que já estão na pasta `files/`:
 
 Se quiser testar sem subir nada localmente, a API já está atrás do Nginx em:
 
-`http://100.56.249.140`
+`http://44.203.108.22`
 
 Você pode abrir:
 
-- `http://100.56.249.140/docs`
-- `http://100.56.249.140/openapi.json`
+- `http://44.203.108.22/docs`
+- `http://44.203.108.22/openapi.json`
 
 ## Sequência mínima de uso
 
