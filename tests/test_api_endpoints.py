@@ -144,6 +144,28 @@ def test_resumir_vendas_sem_token_retorna_403(client):
     assert response.status_code == 401
 
 
+def test_resumir_vendas_com_token_valido_persiste_resumo(client, token_valido, tmp_path):
+    """Verifica que o endpoint de resumo também grava o consolidado no banco."""
+    from api import api as api_module
+    from api.services.sales_service import ServicoVendas
+
+    database_url = f"sqlite:///{tmp_path / 'api_summary.db'}"
+    api_module.servico_vendas = ServicoVendas()
+
+    arquivo = criar_arquivo_excel()
+    response = client.post(
+        f"/resumir_vendas/?database_url={database_url}",
+        headers={"Authorization": f"Bearer {token_valido}"},
+        files={"file": ("vendas.xlsx", arquivo, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["resultado"]["persistidos"] == 1
+    assert data["resumo"]["mais_vendidos"][0]["produto"] == "Produto A"
+    assert len(data["resumos"]) == 1
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # Testes de endpoints públicos
 # ────────────────────────────────────────────────────────────────────────────

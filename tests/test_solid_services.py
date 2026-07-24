@@ -48,3 +48,32 @@ def test_servico_vendas_usa_extrator_injetado():
     resultado = servico.persistir_dados('arquivo.xlsx', sheet_name='Dados de Vendas', database_url='sqlite:///stub.db')
 
     assert resultado['persistidos'] == 1
+
+
+def test_servico_vendas_persiste_resumo_e_retorna_consulta(tmp_path):
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Dados de Vendas'
+    worksheet.append([
+        'ID Venda',
+        'Data da Venda',
+        'Produto',
+        'Categoria',
+        'Preço Unitário',
+        'Quantidade Vendida',
+        'Estoque Atual',
+    ])
+    worksheet.append([1, '2023-01-01', 'Produto A', 'Categoria 1', 10.0, 5, 100])
+    worksheet.append([2, '2023-01-02', 'Produto A', 'Categoria 1', 10.0, 3, 90])
+
+    database_url = f"sqlite:///{tmp_path / 'sales_summary.db'}"
+    servico = ServicoVendas()
+
+    resultado = servico.persistir_resumo_vendas(workbook, 'Dados de Vendas', database_url=database_url)
+
+    assert resultado['resultado']['persistidos'] == 1
+    assert resultado['resumo']['mais_vendidos'][0]['produto'] == 'Produto A'
+
+    resumos = servico.consultar_resumos_vendas(database_url=database_url)
+    assert len(resumos) == 1
+    assert resumos[0]['resumo']['mais_vendidos'][0]['produto'] == 'Produto A'

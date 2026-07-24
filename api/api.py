@@ -1,6 +1,6 @@
 import os
 import time
-from typing import List, Optional
+from typing import Any, List, Optional, Tuple
 
 import requests
 import uvicorn
@@ -62,11 +62,13 @@ class TokenResponse(BaseModel):
 
 
 class ProdutosResponse(BaseModel):
-    produtos: List[dict]
+    produtos: List[Tuple[Any, ...]]
 
 
-class ResumoResponse(BaseModel):
-    resumo: List[dict]
+class ResumoPersistidoResponse(BaseModel):
+    resumo: dict
+    resultado: dict
+    resumos: List[dict]
 
 
 class VendasPersistirResponse(BaseModel):
@@ -93,7 +95,7 @@ async def login(credenciais: CredenciaisLogin):
     return {"access_token": token, "token_type": "bearer"}
 
 
-@app.post("/extract_produtos/", tags=["vendas"])
+@app.post("/extract_produtos/", tags=["vendas"], response_model=ProdutosResponse)
 async def extract_produtos_endpoint(file: UploadFile = File(...), _: dict = Depends(verificar_token)):
     """Extrai produtos de um arquivo Excel (.xlsx)."""
     if not file.filename.endswith(".xlsx"):
@@ -103,17 +105,31 @@ async def extract_produtos_endpoint(file: UploadFile = File(...), _: dict = Depe
         return {"produtos": servico_vendas.extrair_produtos(temp_path, sheet_name=SALES_SHEET_NAME)}
 
 
-@app.post("/resumir_vendas/", tags=["vendas"])
-async def resumir_vendas_endpoint(file: UploadFile = File(...), _: dict = Depends(verificar_token)):
+@app.post("/resumir_vendas/", tags=["vendas"], response_model=ResumoPersistidoResponse)
+async def resumir_vendas_endpoint(
+    file: UploadFile = File(...),
+    database_url: Optional[str] = Query(default=None),
+    _: dict = Depends(verificar_token),
+):
     """Resume vendas de um arquivo Excel (.xlsx)."""
     if not file.filename.endswith(".xlsx"):
         raise ArquivoInvalidoError(file.filename, "formato deve ser .xlsx")
     logger.info("Resumindo vendas de '%s'", file.filename)
+    resolved_database_url = obter_database_url(database_url)
     with servico_arquivo.arquivo_temporario(file) as temp_path:
-        return {"resumo": servico_vendas.resumir_vendas(temp_path, sheet_name=SALES_SHEET_NAME)}
+        resultado = servico_vendas.persistir_resumo_vendas(
+            temp_path,
+            sheet_name=SALES_SHEET_NAME,
+            database_url=resolved_database_url,
+        )
+        return {
+            "resumo": resultado["resumo"],
+            "resultado": resultado["resultado"],
+            "resumos": servico_vendas.consultar_resumos_vendas(database_url=resolved_database_url),
+        }
 
 
-@app.post("/vendas/persistir/", tags=["vendas"])
+@app.post("/vendas/persistir/", tags=["vendas"], response_model=VendasPersistirResponse)
 async def persistir_vendas_endpoint(
     file: UploadFile = File(...),
     database_url: Optional[str] = Query(default=None),
@@ -144,7 +160,7 @@ async def persistir_vendas_endpoint(
         }
 
 
-@app.post("/extract_employee_costs/", tags=["custos"])
+@app.post("/extract_employee_costs/", tags=["custos"], response_model=CustosResponse)
 async def extract_employee_costs_endpoint(file: UploadFile = File(...), _: dict = Depends(verificar_token)):
     """Extrai custos de funcionários de um arquivo PDF e persiste no DynamoDB."""
     if not file.filename.endswith(".pdf"):

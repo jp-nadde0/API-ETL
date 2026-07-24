@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # Importa os modelos para que o Alembic detecte as tabelas
 from database.repositories.sales_repository import Venda  # noqa: F401
+from database.repositories.sales_summary_repository import ResumoVenda  # noqa: F401
 
 config = context.config
 

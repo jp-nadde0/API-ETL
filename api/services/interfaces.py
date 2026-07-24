@@ -12,6 +12,23 @@ class RepositorioVendas(ABC):
         raise NotImplementedError
 
 
+class RepositorioResumoVendas(ABC):
+    @abstractmethod
+    def persistir(
+        self,
+        resumo: Dict[str, Any],
+        database_url: Optional[str] = None,
+        sheet_name: Optional[str] = None,
+        data_inicial: Optional[str] = None,
+        data_final: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def consultar(self, database_url: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+
 class ArmazenamentoCustosFuncionarios(ABC):
     @abstractmethod
     def salvar(self, resultado: Dict[str, Any]) -> Dict[str, Any]:
